@@ -4,6 +4,8 @@ Link to the AT commands docs: https://docs.espressif.com/projects/esp-at/en/late
 deep sleep blog for pico in micropython: https://ghubcoder.github.io/posts/deep-sleeping-the-pico-micropython/
 micropython deepsleep repo: https://github.com/ghubcoder/micropython-pico-deepsleep
 deep sleep blog for pico in C: https://ghubcoder.github.io/posts/awaking-the-pico/
+how to program esp01: https://nematicslab.com/how-to-program-esp01/
+ESP01 deepsleep: https://www.instructables.com/Enable-DeepSleep-on-an-ESP8266-01/
 '''
 from machine import UART
 import time
@@ -12,6 +14,8 @@ import utime as time
 from dht import DHT11
 from uartCom import uartSend
 import picosleep
+
+SLEEP = 60
 
 # activate pins for the DHT sensor
 pin = Pin(14, Pin.OUT, Pin.PULL_DOWN)
@@ -22,9 +26,15 @@ uart = UART(1,115200)
 print('-- UART Serial --')
 print('>', end='')
 
+res = uartSend('AT+CWQAP', delay=2)
+print(res)
+
+res = uartSend('AT+RESTORE', delay=2)
+print(res)
 #If there's a TCP connection, reset the device (couldn't get AT+CIPCLOSE to work?)
 res = uartSend('AT+CIPSTATUS', delay=1)
-
+res = uartSend('AT+RST', delay=5)
+print(res)
 if res:
     if int(''.join(x for x in res if x.isdigit())) == 3:
         res = uartSend('AT+RST', delay=5)
@@ -45,8 +55,8 @@ res = uartSend('AT+CWMODE=3', delay=2)
 print(res)
 
 #connect to router
-#res = uartSend('AT+CWJAP="WiFimodem-7D90","zwy3uznxkd"', delay = 10)
-#print(res)
+res = uartSend('AT+CWJAP="WiFimodem-7D90","zwy3uznxkd"', delay = 10)
+print(res)
 
 #connect to router
 res = uartSend('AT+PING="192.168.0.5"', delay = 1)
@@ -80,5 +90,7 @@ while True:
     print(res)
 
     # and then we sleep
-    #time.sleep(60)
-    picosleep.seconds(10)
+    for i in range(10):
+        #picosleep.seconds(SLEEP)
+        time.sleep(60)
+
