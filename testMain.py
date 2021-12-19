@@ -15,7 +15,9 @@ from dht import DHT11
 from uartCom import uartSend
 import picosleep
 
-SLEEP = 60
+SLEEP_MIN = 30
+SSID = 'WiFimodem-7D90'
+PSSW = 'zwy3uznxkd'
 
 # activate pins for the DHT sensor
 pin = Pin(14, Pin.OUT, Pin.PULL_DOWN)
@@ -26,23 +28,26 @@ uart = UART(1,115200)
 print('-- UART Serial --')
 print('>', end='')
 
-res = uartSend('AT+CWQAP', delay=2)
-print(res)
+# res = uartSend('AT+CWQAP', delay=2)
+# print(res)
 
-res = uartSend('AT+RESTORE', delay=2)
-print(res)
 #If there's a TCP connection, reset the device (couldn't get AT+CIPCLOSE to work?)
 res = uartSend('AT+CIPSTATUS', delay=1)
-res = uartSend('AT+RST', delay=5)
 print(res)
 if res:
-    if int(''.join(x for x in res if x.isdigit())) == 3:
-        res = uartSend('AT+RST', delay=5)
+    resp_int = int(''.join(x for x in res if x.isdigit()))
+    if resp_int == 3:
+        res = uartSend('AT+CIPCLOSE', delay=5)
+        print(res)
+
+    elif resp_int != 3 or resp_int != 4:
+        #connect to router if the ESP isn't connected
+        res = uartSend(f'AT+CWJAP="{SSID}","{PSSW}"', delay = 10)
         print(res)
 else:
     #factory reset
-    res = uartSend('AT+RESTORE', delay=2)
-    print(res)    
+    #res = uartSend('AT+RESTORE', delay=2)
+    #print(res)    
     res = uartSend('AT+RST', delay=5)
     print(res)
     
@@ -54,11 +59,7 @@ print(res)
 res = uartSend('AT+CWMODE=3', delay=2)
 print(res)
 
-#connect to router
-res = uartSend('AT+CWJAP="WiFimodem-7D90","zwy3uznxkd"', delay = 10)
-print(res)
-
-#connect to router
+#pings flask server
 res = uartSend('AT+PING="192.168.0.5"', delay = 1)
 print(res)
 
@@ -90,7 +91,8 @@ while True:
     print(res)
 
     # and then we sleep
-    for i in range(10):
-        #picosleep.seconds(SLEEP)
-        time.sleep(60)
-
+    time.sleep(SLEEP_MIN * 60)
+    '''
+    for i in range(SLEEP_MIN):
+        picosleep.seconds(SLEEP)
+    '''
