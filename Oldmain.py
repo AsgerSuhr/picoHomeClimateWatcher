@@ -23,8 +23,6 @@ pin = Pin(14, Pin.OUT, Pin.PULL_DOWN)
 sensor = DHT11(pin)
 button_pin = Pin(16, Pin.IN, Pin.PULL_DOWN)
 led_onboard = Pin(25, Pin.OUT)
-relay = Pin(16, Pin.OUT, Pin.PULL_DOWN)
-relay.value(True)
 
 def blink(amount, delay=0.5):
     for i in range(amount):
@@ -46,53 +44,51 @@ uart = UART(1,115200)
 print('-- UART Serial --')
 print('>', end='')
 blink(2)
+writeTo('', file='setup', append=False)
 
-#Here the code runs indefinitely 
-while True:
-    writeTo('', file='setup', append=False)
-    
-    #configure as station mode
-    try:
-        res = uartSend('AT+CWMODE=1', delay=2)
-        print(res)
-        writeTo(res, file='setup')
-        blink(2)
-    except Exception as err:
-        with open('error.txt', 'w') as f:
-            f.write(str(err))
-    #If there's a TCP connection, reset the device (couldn't get AT+CIPCLOSE to work?)
-    res = uartSend('AT+CIPSTATUS', delay=1)
-    print(res)
-    writeTo(res, file='setup')
-    if res:
-        blink(25, delay=0.05)
-        resp_int = int(''.join(x for x in res if x.isdigit()))
-        if resp_int == 3:
-            res = uartSend('AT+CIPCLOSE', delay=5)
-            print(res)
-
-        elif resp_int != 3 and resp_int != 4:
-            #connect to router if the ESP isn't connected
-            res = uartSend(f'AT+CWJAP="{SSID}","{PSSW}"', delay = 10)
-            print(res)
-    else:
-        #factory reset
-        #res = uartSend('AT+RESTORE', delay=2)
-        #print(res)    
-        res = uartSend('AT+RST', delay=5)
-        print(res)
-    
-    #enable multi connection mode
-    res = uartSend('AT+CIPMUX=1', delay=1)
+#configure as station mode
+try:
+    res = uartSend('AT+CWMODE=1', delay=2)
     print(res)
     writeTo(res, file='setup')
     blink(2)
+except Exception as err:
+    with open('error.txt', 'w') as f:
+        f.write(str(err))
+#If there's a TCP connection, reset the device (couldn't get AT+CIPCLOSE to work?)
+res = uartSend('AT+CIPSTATUS', delay=1)
+print(res)
+writeTo(res, file='setup')
+if res:
+    blink(25, delay=0.05)
+    resp_int = int(''.join(x for x in res if x.isdigit()))
+    if resp_int == 3:
+        res = uartSend('AT+CIPCLOSE', delay=5)
+        print(res)
 
-    #pings flask server
-    res = uartSend('AT+PING="192.168.0.5"', delay = 1)
+    elif resp_int != 3 and resp_int != 4:
+        #connect to router if the ESP isn't connected
+        res = uartSend(f'AT+CWJAP="{SSID}","{PSSW}"', delay = 10)
+        print(res)
+else:
+    #factory reset
+    #res = uartSend('AT+RESTORE', delay=2)
+    #print(res)    
+    res = uartSend('AT+RST', delay=5)
     print(res)
-    writeTo(res, file='setup')
+    
+#enable multi connection mode
+res = uartSend('AT+CIPMUX=1', delay=1)
+print(res)
+writeTo(res, file='setup')
+blink(2)
 
+#pings flask server
+res = uartSend('AT+PING="192.168.0.5"', delay = 1)
+print(res)
+writeTo(res, file='setup')
+#Here the code runs indefinitely 
+while True:
     # Establishing TCP connection
     res = uartSend('AT+CIPSTART=0,"TCP","192.168.0.5",5000', delay=4)
     print(res)
@@ -120,12 +116,6 @@ while True:
     res = uartSend('AT+CIPCLOSE=0', delay=4)
     print(res)
     writeTo(res)
-    relay.value(False)
     # and then we sleep
-    for m in range(SLEEP_MIN):
-        for s in range(60):
-            time.sleep(1)
-            
-    relay.value(True)
-    time.sleep(10)
-    
+    time.sleep(SLEEP_MIN * 60)
+
